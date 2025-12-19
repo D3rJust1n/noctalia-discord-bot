@@ -124,7 +124,7 @@ function setupInteractionHandler(client) {
         } catch (error) {
             console.error(`Error executing command ${interaction.commandName}:`, error);
             
-            const errorEmbed = createErrorEmbed({
+            const errorEmbed = createEmbed.error({
                 title: '❌ Command Error',
                 description: 'There was an error while executing this command!',
                 footer: 'Please try again later or contact support if the issue persists.',

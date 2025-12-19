@@ -121,7 +121,7 @@ module.exports = {
             return;
         }
 
-        const embed = createInfoEmbed({
+        const embed = createEmbed.info({
             title: `❓ ${faq.question}`,
             description: faq.answer,
             footer: `Category: ${formatCategoryName(faq.category || 'general')} • Use /faq to see all FAQs`,
