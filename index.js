@@ -25,7 +25,7 @@ client.once('clientReady', async () => {
     
     // Set guildId to a specific guild ID for faster command registration during development
     // Set to null or undefined to register commands globally (takes up to 1 hour to propagate)
-    const guildId = '880442489348182097';
+    const guildId = '1401598189823590460';
     
     await registerCommands(client.user.id, guildId, token);
     await updateBotStatus(client);
