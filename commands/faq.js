@@ -81,6 +81,20 @@ function findFAQ(faqs, topicId) {
     return faqs.find(f => f.id === topicId) || null;
 }
 
+function cleanAstroSyntax(text) {
+    if (!text) return text;
+    
+    return text
+        .replace(/:::note\[([^\]]+)\]/g, '**$1**\n') // Convert :::note[title] to **title**
+        .replace(/:::tip\[([^\]]+)\]/g, '**$1**\n') // Convert :::tip[title] to **title**
+        .replace(/:::warning\[([^\]]+)\]/g, '**$1**\n') // Convert :::warning[title] to **title**
+        .replace(/:::danger\[([^\]]+)\]/g, '**$1**\n') // Convert :::danger[title] to **title**
+        .replace(/:::info\[([^\]]+)\]/g, '**$1**\n') // Convert :::info[title] to **title**
+        .replace(/:::/g, '') // Remove closing ::: markers
+        .replace(/\n{3,}/g, '\n\n') // Clean up excessive newlines
+        .trim();
+}
+
 module.exports = {
     get data() {
         return buildFAQCommand();
@@ -180,9 +194,10 @@ module.exports = {
 
         const categoryAnchor = categoryToUrlAnchor(faq.category || 'general');
         const categoryUrl = `${resources.docs.faq}#${categoryAnchor}`;
+        const cleanedAnswer = cleanAstroSyntax(faq.answer);
         const embed = createEmbed.info({
             title: `❓ ${faq.question}`,
-            description: `${faq.answer}\n\n**[View Category on Docs](${categoryUrl})**`,
+            description: `${cleanedAnswer}\n\n**[View Category on Docs](${categoryUrl})**`,
             footer: `Category: ${formatCategoryName(faq.category || 'general')} • Use /faq to see all FAQs`,
         });
 
