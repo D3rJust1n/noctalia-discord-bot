@@ -1,33 +1,60 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { createEmbed } = require('../utils/embeds');
-const faqs = require('../config/faq');
+const { getFAQs, fetchFAQs } = require('../utils/docs');
 const resources = require('../config/resources');
 
-/**
- * Builds the FAQ command with a choice option
- */
+let commandChoices = [];
+let choicesInitialized = false;
+
+async function initializeFAQChoices() {
+    if (choicesInitialized) return;
+    
+    try {
+        const faqs = await fetchFAQs();
+        if (faqs && Array.isArray(faqs) && faqs.length > 0) {
+            commandChoices = faqs.map(faq => ({
+                name: faq.question.length > 100 ? faq.question.substring(0, 97) + '...' : faq.question,
+                value: faq.id,
+            }));
+            choicesInitialized = true;
+            console.log(`Initialized ${commandChoices.length} FAQ choices from API`);
+        } else {
+            console.warn('Could not fetch FAQs at startup, command choices will be empty');
+            commandChoices = [];
+            choicesInitialized = true;
+        }
+    } catch (error) {
+        console.error('Failed to initialize FAQ choices:', error.message);
+        commandChoices = [];
+        choicesInitialized = true;
+    }
+}
+
+initializeFAQChoices().catch(err => {
+    console.error('Error initializing FAQ choices:', err);
+});
+
 function buildFAQCommand() {
     const command = new SlashCommandBuilder()
         .setName('faq')
         .setDescription('Frequently asked questions about Noctalia')
-        .addStringOption(option =>
+        .addStringOption(option => {
             option
                 .setName('topic')
                 .setDescription('Select a FAQ topic to view')
-                .setRequired(false)
-                .addChoices(...faqs.map(faq => ({
-                    name: faq.question.length > 100 ? faq.question.substring(0, 97) + '...' : faq.question,
-                    value: faq.id,
-                })))
-        );
+                .setRequired(false);
+            
+            if (commandChoices.length > 0) {
+                option.addChoices(...commandChoices);
+            }
+            
+            return option;
+        });
 
     return command;
 }
 
-/**
- * Groups FAQs by category for better organization
- */
-function groupFAQsByCategory() {
+function groupFAQsByCategory(faqs) {
     const grouped = {};
     faqs.forEach(faq => {
         const category = faq.category || 'general';
@@ -39,9 +66,6 @@ function groupFAQsByCategory() {
     return grouped;
 }
 
-/**
- * Formats category name for display
- */
 function formatCategoryName(category) {
     return category
         .split('-')
@@ -49,21 +73,49 @@ function formatCategoryName(category) {
         .join(' ');
 }
 
+function categoryToUrlAnchor(category) {
+    return category.replace(/&/g, '--');
+}
+
+function findFAQ(faqs, topicId) {
+    return faqs.find(f => f.id === topicId) || null;
+}
+
 module.exports = {
-    data: buildFAQCommand(),
+    get data() {
+        return buildFAQCommand();
+    },
+    initializeFAQChoices,
     async execute(interaction) {
+        let faqs;
+        try {
+            faqs = await getFAQs();
+        } catch (error) {
+            console.error('Failed to fetch FAQs:', error);
+            const errorEmbed = createEmbed.error({
+                title: '❌ Documentation API Unavailable',
+                description: `Unable to fetch FAQs from the documentation API. Please try again later.\n\n**[View FAQ on Docs](${resources.docs.faq})**`,
+            });
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            return;
+        }
+        
         const topicId = interaction.options.getString('topic');
 
         // If no topic is selected, show the list
         if (!topicId) {
-            const grouped = groupFAQsByCategory();
+            const grouped = groupFAQsByCategory(faqs);
             const fields = [];
 
             // Create fields for each category
             Object.keys(grouped).sort().forEach(category => {
                 const categoryFAQs = grouped[category];
+                const categoryAnchor = categoryToUrlAnchor(category);
+                const categoryUrl = `${resources.docs.faq}#${categoryAnchor}`;
                 const faqList = categoryFAQs
-                    .map(faq => `• ${faq.question}`)
+                    .map(faq => {
+                        return `• ${faq.question}`;
+                    })
                     .join('\n');
                 
                 // Discord embed field value limit is 1024 characters
@@ -83,15 +135,18 @@ module.exports = {
                     if (currentChunk) chunks.push(currentChunk.trim());
                     
                     chunks.forEach((chunk, index) => {
+                        const categoryName = index === 0 
+                            ? `${formatCategoryName(category)} - [View Category](${categoryUrl})`
+                            : '\u200b';
                         fields.push({
-                            name: index === 0 ? formatCategoryName(category) : '\u200b',
+                            name: categoryName,
                             value: chunk,
                             inline: false,
                         });
                     });
                 } else {
                     fields.push({
-                        name: formatCategoryName(category),
+                        name: `${formatCategoryName(category)} - [View Category](${categoryUrl})`,
                         value: faqList,
                         inline: false,
                     });
@@ -110,9 +165,11 @@ module.exports = {
         }
 
         // Handle selected FAQ topic
-        const faq = faqs.find(f => f.id === topicId);
+        const faq = findFAQ(faqs, topicId);
         
         if (!faq) {
+            console.error(`FAQ not found for topicId: ${topicId}`);
+            console.error(`Available FAQ IDs: ${faqs.map(f => f.id).slice(0, 5).join(', ')}...`);
             const errorEmbed = createEmbed.error({
                 title: '❌ FAQ Not Found',
                 description: `The FAQ topic was not found. Use \`/faq\` without a topic to see all available topics.`,
@@ -121,9 +178,11 @@ module.exports = {
             return;
         }
 
+        const categoryAnchor = categoryToUrlAnchor(faq.category || 'general');
+        const categoryUrl = `${resources.docs.faq}#${categoryAnchor}`;
         const embed = createEmbed.info({
             title: `❓ ${faq.question}`,
-            description: faq.answer,
+            description: `${faq.answer}\n\n**[View Category on Docs](${categoryUrl})**`,
             footer: `Category: ${formatCategoryName(faq.category || 'general')} • Use /faq to see all FAQs`,
         });
 

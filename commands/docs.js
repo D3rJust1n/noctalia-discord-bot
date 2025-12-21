@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { createEmbed } = require('../utils/embeds');
+const { getDocs } = require('../utils/docs');
 const resources = require('../config/resources');
 
 module.exports = {
@@ -7,13 +8,27 @@ module.exports = {
         .setName('docs')
         .setDescription('Get links to Noctalia documentation and resources'),
     async execute(interaction) {
+        // Fetch docs from API only (no fallback)
+        let docs;
+        try {
+            docs = await getDocs();
+        } catch (error) {
+            console.error('Failed to fetch docs:', error);
+            const errorEmbed = createEmbed.error({
+                title: '❌ Documentation API Unavailable',
+                description: `Unable to fetch documentation from the API. Please try again later.\n\n**[View Docs](${resources.docs.main})**`,
+            });
+            await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            return;
+        }
+        
         const embed = createEmbed.info({
             title: '📚 Noctalia Documentation',
-            description: `**[📖 View Full Documentation](${resources.docs.main})**\n\nQuick access to guides and resources for Noctalia.`,
+            description: `**[📖 View Full Documentation](${docs.main})**\n\nQuick access to guides and resources for Noctalia.`,
             fields: [
                 {
                     name: '📋 Documentation Sections',
-                    value: `• [🚀 Getting Started](${resources.docs.gettingStarted})\n• [⚙️ Configuration](${resources.docs.configuration})\n• [🎨 Theming](${resources.docs.theming})\n• [💻 Development](${resources.docs.development})\n• [❓ FAQ](${resources.docs.faq})`,
+                    value: `• [🚀 Getting Started](${docs.gettingStarted})\n• [⚙️ Configuration](${docs.configuration})\n• [🎨 Theming](${docs.theming})\n• [💻 Development](${docs.development})\n• [❓ FAQ](${docs.faq})`,
                     inline: false,
                 },
                 {

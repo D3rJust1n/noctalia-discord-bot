@@ -23,9 +23,14 @@ client.once('clientReady', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
     console.log(`Bot is ready and online!`);
     
-    // Set guildId to a specific guild ID for faster command registration during development
-    // Set to null or undefined to register commands globally (takes up to 1 hour to propagate)
-    const guildId = '1401598189823590460';
+    const faqCommand = require('./commands/faq');
+    if (faqCommand.initializeFAQChoices) {
+        console.log('Fetching FAQs to build command choices...');
+        await faqCommand.initializeFAQChoices();
+        console.log('FAQ choices initialized, registering commands...');
+    }
+    
+    const guildId = '880442489348182097';
     
     await registerCommands(client.user.id, guildId, token);
     await updateBotStatus(client);
