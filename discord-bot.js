@@ -30,7 +30,7 @@ client.once('clientReady', async () => {
         console.log('FAQ choices initialized, registering commands...');
     }
     
-    const guildId = '880442489348182097';
+    const guildId = '1401598189823590460';
     
     await registerCommands(client.user.id, guildId, token);
     await updateBotStatus(client);
