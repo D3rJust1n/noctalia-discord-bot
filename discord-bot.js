@@ -1,11 +1,20 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, Partials } = require('discord.js');
 const { registerCommands, setupInteractionHandler } = require('./handlers/commandHandler');
+const { setupReactionRoleHandler } = require('./handlers/reactionRoleHandler');
 const { updateBotStatus } = require('./utils/status');
 
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.GuildMessageReactions,
+    ],
+    partials: [
+        Partials.Message,
+        Partials.Channel,
+        Partials.Reaction,
     ],
 });
 
@@ -18,6 +27,7 @@ if (!token) {
 }
 
 setupInteractionHandler(client);
+setupReactionRoleHandler(client);
 
 client.once('clientReady', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
