@@ -1,3 +1,15 @@
+const githubToken = process.env.GITHUB_TOKEN;
+
+function getAuthHeaders() {
+    const headers = {
+        'Accept': 'application/vnd.github+json',
+    };
+    if (githubToken) {
+        headers['Authorization'] = `Bearer ${githubToken}`;
+    }
+    return headers;
+}
+
 /**
  * @param {string} owner - Repository owner
  * @param {string} repo - Repository name
@@ -5,7 +17,9 @@
  */
 async function getLatestRelease(owner, repo) {
     try {
-        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`);
+        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`, {
+            headers: getAuthHeaders(),
+        });
         
         if (!response.ok) {
             console.error(`Failed to fetch latest release: ${response.status} ${response.statusText}`);
@@ -32,7 +46,9 @@ async function getLatestRelease(owner, repo) {
  */
 async function getLatestCommit(owner, repo, branch = 'main') {
     try {
-        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits/${branch}`);
+        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/commits/${branch}`, {
+            headers: getAuthHeaders(),
+        });
         
         if (!response.ok) {
             // Try 'master' if 'main' fails
