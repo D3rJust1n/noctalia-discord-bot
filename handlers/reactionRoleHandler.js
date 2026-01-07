@@ -62,13 +62,13 @@ async function handleReaction(reaction, user, action) {
 
         const rrData = reactionRoles[messageId];
         
-        // Get the emoji identifier
-        const emojiId = reaction.emoji.id 
-            ? `<:${reaction.emoji.name}:${reaction.emoji.id}>` // Custom emoji
-            : reaction.emoji.name; // Unicode emoji
+        // Get the emoji identifier - normalize custom emoji to ID only
+        const normalizedEmoji = reaction.emoji.id 
+            ? reaction.emoji.id // Custom emoji: store/lookup by ID only
+            : reaction.emoji.name; // Unicode emoji: use name
 
         // Check if this emoji is mapped to a role
-        const roleId = rrData.roles[emojiId];
+        const roleId = rrData.roles[normalizedEmoji];
         if (!roleId) {
             return;
         }

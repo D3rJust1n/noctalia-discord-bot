@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { createEmbed } = require('../utils/embeds');
 const { checkPermission } = require('../utils/permissions');
+const { MessageFlags } = require('discord.js');
 
 /**
  * Loads all command files from the commands directory
@@ -109,16 +110,18 @@ function setupInteractionHandler(client) {
             const permissionCheck = checkPermission(member, interaction.commandName);
             
             if (!permissionCheck.allowed) {
+                console.log(`[commandHandler] Permission denied for ${interaction.commandName}, replying with error`);
                 const errorEmbed = createEmbed.error({
                     title: '❌ Permission Denied',
                     description: permissionCheck.reason || 'You do not have permission to use this command.',
                 });
                 
-                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
                 return;
             }
         }
 
+        console.log(`[commandHandler] Executing ${interaction.commandName} - replied: ${interaction.replied}, deferred: ${interaction.deferred}`);
         try {
             await command.execute(interaction);
         } catch (error) {
@@ -130,7 +133,7 @@ function setupInteractionHandler(client) {
                 footer: 'Please try again later or contact support if the issue persists.',
             });
             
-            const errorMessage = { embeds: [errorEmbed], ephemeral: true };
+            const errorMessage = { embeds: [errorEmbed], flags: MessageFlags.Ephemeral };
             
             if (interaction.replied || interaction.deferred) {
                 await interaction.followUp(errorMessage);

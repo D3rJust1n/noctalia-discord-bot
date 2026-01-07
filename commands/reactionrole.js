@@ -82,17 +82,10 @@ module.exports = {
                 .setDescription('List all active reaction role messages')),
     
     async execute(interaction) {
-        // Check if user has Moonwarden role
-        const permCheck = checkPermission(interaction.member, 'rr');
-        if (!permCheck.allowed) {
-            const errorEmbed = createEmbed.error({
-                title: '❌ Permission Denied',
-                description: permCheck.reason || 'You do not have permission to use this command.',
-            });
-            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
-            return;
-        }
-
+        // Defer IMMEDIATELY as the first statement
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        console.log(`[rr] Deferred at top - replied: ${interaction.replied}, deferred: ${interaction.deferred}`);
+        
         const subcommand = interaction.options.getSubcommand();
 
         try {
@@ -117,16 +110,15 @@ module.exports = {
                     break;
             }
         } catch (error) {
-            console.error('Error executing reactionrole command:', error);
+            console.error('Error executing rr command:', error);
             const errorEmbed = createEmbed.error({
                 title: '❌ Error',
                 description: 'An error occurred while executing this command.',
             });
-            
-            if (interaction.replied || interaction.deferred) {
+            try {
                 await interaction.followUp({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
-            } else {
-                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+            } catch (replyError) {
+                console.error('Failed to send error message:', replyError);
             }
         }
     },
@@ -146,7 +138,7 @@ async function handleCreate(interaction) {
             title: '❌ Invalid Channel',
             description: 'Please select a text channel.',
         });
-        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+        await respondEphemeral(interaction, { embeds: [errorEmbed] });
         return;
     }
 
@@ -180,10 +172,15 @@ async function handleCreate(interaction) {
             title: '✅ Reaction Role Created',
             description: `Message created in ${channel}!\n\n**Message ID:** \`${message.id}\`\n\nUse \`/reactionrole add\` to add role-reaction pairs.`,
         });
-        await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
+        await respondEphemeral(interaction, { embeds: [successEmbed] });
     } catch (error) {
         console.error('Error creating reaction role message:', error);
-        throw error;
+        const errorEmbed = createEmbed.error({
+            title: '❌ Error',
+            description: 'Failed to create reaction role message. Please try again.',
+        });
+        await respondEphemeral(interaction, { embeds: [errorEmbed] });
+        return;
     }
 }
 /**
@@ -207,7 +204,7 @@ async function handleSetup(interaction) {
             title: '❌ Message Not Found',
             description: `Could not find message \`${messageId}\` in this channel.\n\nMake sure:\n- You're using this command in the same channel as the message\n- The message ID is correct\n- The bot can see the message`,
         });
-        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+        await respondEphemeral(interaction, { embeds: [errorEmbed] });
         return;
     }
 
@@ -221,7 +218,7 @@ async function handleSetup(interaction) {
                     title: '❌ Cannot Re-use Message',
                     description: 'The target message has no text content to copy. Please resend your rules message as text and try again.',
                 });
-                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+                await respondEphemeral(interaction, { embeds: [errorEmbed] });
                 return;
             }
 
@@ -249,7 +246,7 @@ async function handleSetup(interaction) {
                 title: '❌ Repost Failed',
                 description: 'I could not copy that message. Please try again or re-send the text yourself and run `/reactionrole setup` on the new message.',
             });
-            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+            await respondEphemeral(interaction, { embeds: [errorEmbed] });
             return;
         }
     }
@@ -266,7 +263,7 @@ async function handleSetup(interaction) {
         title: '✅ Reaction Role Set Up',
         description: `Message has been set up as a reaction role message!\n\n**Message ID:** \`${message.id}\`\n**Channel:** <#${channelId}>\n\nUse \`/reactionrole add\` to add role-reaction pairs.`,
     });
-    await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
+    await respondEphemeral(interaction, { embeds: [successEmbed] });
 }
 
 
@@ -284,7 +281,7 @@ async function handleEdit(interaction) {
             title: '❌ Message Not Found',
             description: 'This message ID is not registered as a reaction role message.',
         });
-        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+        await respondEphemeral(interaction, { embeds: [errorEmbed] });
         return;
     }
 
@@ -317,7 +314,7 @@ async function handleEdit(interaction) {
                 title: '❌ Source Not Found',
                 description: 'Could not find the source message. Make sure the ID is correct and I can see that channel.',
             });
-            await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+            await respondEphemeral(interaction, { embeds: [errorEmbed] });
             return;
         }
 
@@ -356,14 +353,14 @@ async function handleEdit(interaction) {
             title: '✅ Message Updated',
             description: 'The reaction role message has been updated.',
         });
-        await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
+        await respondEphemeral(interaction, { embeds: [successEmbed] });
     } catch (error) {
         console.error('Error updating reaction role message:', error);
         const errorEmbed = createEmbed.error({
             title: '❌ Update Failed',
             description: 'Could not update that message. Make sure I can see and edit it.',
         });
-        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+        await respondEphemeral(interaction, { embeds: [errorEmbed] });
     }
 }
 
@@ -383,7 +380,7 @@ async function handleAdd(interaction) {
             title: '❌ Message Not Found',
             description: 'This message ID is not registered as a reaction role message.',
         });
-        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+        await respondEphemeral(interaction, { embeds: [errorEmbed] });
         return;
     }
 
@@ -396,7 +393,7 @@ async function handleAdd(interaction) {
             title: '❌ Missing Permissions',
             description: 'I don\'t have the **Manage Roles** permission.',
         });
-        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+        await respondEphemeral(interaction, { embeds: [errorEmbed] });
         return;
     }
 
@@ -405,7 +402,7 @@ async function handleAdd(interaction) {
             title: '❌ Role Hierarchy Error',
             description: `I cannot manage ${role} because it is higher than or equal to my highest role.\n\nPlease move my role above ${role} in Server Settings → Roles.`,
         });
-        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+        await respondEphemeral(interaction, { embeds: [errorEmbed] });
         return;
     }
 
@@ -414,7 +411,7 @@ async function handleAdd(interaction) {
             title: '❌ Managed Role',
             description: `${role} is a managed role (bot/integration role) and cannot be assigned manually.`,
         });
-        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+        await respondEphemeral(interaction, { embeds: [errorEmbed] });
         return;
     }
     
@@ -428,24 +425,32 @@ async function handleAdd(interaction) {
             title: '❌ Message Not Found',
             description: 'Could not find the message. It may have been deleted.',
         });
-        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+        await respondEphemeral(interaction, { embeds: [errorEmbed] });
         return;
     }
 
+    // Parse custom emoji format <:name:id> or <a:name:id> to extract ID
+    const customEmojiMatch = emojiInput.match(/^<a?:[\w]+:(\d+)>$/);
+    const emojiId = customEmojiMatch ? customEmojiMatch[1] : null;
+    const emojiToReact = emojiId || emojiInput; // Use ID for custom emoji, full string for unicode
+
     // Add the reaction to the message
     try {
-        await message.react(emojiInput);
+        await message.react(emojiToReact);
     } catch (error) {
         const errorEmbed = createEmbed.error({
             title: '❌ Invalid Emoji',
             description: 'Could not add that emoji. Make sure it\'s a valid emoji or custom emoji from this server.',
         });
-        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+        await respondEphemeral(interaction, { embeds: [errorEmbed] });
         return;
     }
 
+    // Normalize emoji for storage: store ID for custom emojis, full input for unicode
+    const normalizedEmoji = emojiId || emojiInput;
+
     // Save the role-emoji mapping
-    rrData.roles[emojiInput] = role.id;
+    rrData.roles[normalizedEmoji] = role.id;
     await saveReactionRole(messageId, rrData);
 
     // Update the embed to show the new role (only if an embed exists)
@@ -481,7 +486,7 @@ async function handleAdd(interaction) {
         title: '✅ Role Added',
         description: `${emojiInput} → ${role} has been added to the reaction role message.`,
     });
-    await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
+    await respondEphemeral(interaction, { embeds: [successEmbed] });
 }
 
 /**
@@ -496,7 +501,7 @@ async function handleRemove(interaction) {
             title: '❌ Message Not Found',
             description: 'This message ID is not registered as a reaction role message.',
         });
-        await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
+        await respondEphemeral(interaction, { embeds: [errorEmbed] });
         return;
     }
 
@@ -506,7 +511,7 @@ async function handleRemove(interaction) {
         title: '✅ Reaction Role Removed',
         description: `Reaction role message \`${messageId}\` has been removed from the database.`,
     });
-    await interaction.reply({ embeds: [successEmbed], flags: MessageFlags.Ephemeral });
+    await respondEphemeral(interaction, { embeds: [successEmbed] });
 }
 
 /**
@@ -521,7 +526,7 @@ async function handleList(interaction) {
             title: '📋 Reaction Roles',
             description: 'No reaction role messages have been created yet.',
         });
-        await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+        await respondEphemeral(interaction, { embeds: [embed] });
         return;
     }
 
@@ -540,5 +545,13 @@ async function handleList(interaction) {
         fields: fields
     });
 
-    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
+    await respondEphemeral(interaction, { embeds: [embed] });
+}
+
+// Always use followUp since we defer at start
+async function respondEphemeral(interaction, payload) {
+    console.log(`[respondEphemeral] replied: ${interaction.replied}, deferred: ${interaction.deferred}`);
+    const data = { ...payload, flags: MessageFlags.Ephemeral };
+    console.log('[respondEphemeral] Using followUp');
+    return await interaction.followUp(data);
 }

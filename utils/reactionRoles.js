@@ -30,6 +30,11 @@ async function loadReactionRoles() {
             // File doesn't exist, return empty object
             return {};
         }
+        if (error instanceof SyntaxError) {
+            // JSON is corrupted, log warning and return empty object
+            console.warn('Warning: reactionRoles.json is corrupted. Starting fresh.');
+            return {};
+        }
         throw error;
     }
 }
