@@ -80,12 +80,12 @@ module.exports = {
             subcommand
                 .setName('list')
                 .setDescription('List all active reaction role messages')),
-    
+
     async execute(interaction) {
         // Defer IMMEDIATELY as the first statement
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
         console.log(`[rr] Deferred at top - replied: ${interaction.replied}, deferred: ${interaction.deferred}`);
-        
+
         const subcommand = interaction.options.getSubcommand();
 
         try {
@@ -144,7 +144,7 @@ async function handleCreate(interaction) {
 
     try {
         let message;
-        
+
         if (usePlain) {
             // Send as plain message to preserve markdown formatting like ## headers
             const plainContent = `# ${title}\n${description}\n\n*React below to get your roles!*`;
@@ -159,7 +159,7 @@ async function handleCreate(interaction) {
                 .setTimestamp();
             message = await channel.send({ embeds: [embed] });
         }
-        
+
         // Initialize the reaction role in storage
         await saveReactionRole(message.id, {
             channelId: channel.id,
@@ -385,7 +385,7 @@ async function handleAdd(interaction) {
     }
 
     const rrData = reactionRoles[messageId];
-    
+
     // Check role hierarchy and permissions
     const botMember = await interaction.guild.members.fetch(interaction.client.user.id);
     if (!botMember.permissions.has(PermissionFlagsBits.ManageRoles)) {
@@ -414,7 +414,7 @@ async function handleAdd(interaction) {
         await respondEphemeral(interaction, { embeds: [errorEmbed] });
         return;
     }
-    
+
     // Fetch the message
     let message;
     try {
@@ -452,35 +452,6 @@ async function handleAdd(interaction) {
     // Save the role-emoji mapping
     rrData.roles[normalizedEmoji] = role.id;
     await saveReactionRole(messageId, rrData);
-
-    // Update the embed to show the new role (only if an embed exists)
-    const currentEmbed = message.embeds?.[0];
-    if (currentEmbed) {
-        const fields = currentEmbed.fields ? [...currentEmbed.fields] : [];
-        
-        // Add or update the roles field
-        const rolesFieldIndex = fields.findIndex(f => f.name === '📋 Available Roles');
-        const rolesList = Object.entries(rrData.roles)
-            .map(([emoji, roleId]) => `${emoji} - <@&${roleId}>`)
-            .join('\n');
-        
-        const newField = {
-            name: '📋 Available Roles',
-            value: rolesList,
-            inline: false
-        };
-
-        if (rolesFieldIndex >= 0) {
-            fields[rolesFieldIndex] = newField;
-        } else {
-            fields.push(newField);
-        }
-
-        const updatedEmbed = EmbedBuilder.from(currentEmbed)
-            .setFields(fields);
-
-        await message.edit({ embeds: [updatedEmbed] });
-    }
 
     const successEmbed = createEmbed.success({
         title: '✅ Role Added',
