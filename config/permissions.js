@@ -1,10 +1,10 @@
 module.exports = {
 
     'faq': {
-        allowedRoles: ['Moonwarden', 'Owlkeeper', 'Stargazer ✨', "Moonbound"],
+        allowedRoles: ['Moonwarden', 'Owlkeeper', 'Stargazer', "Moonbound"],
     },
     'docs': {
-        allowedRoles: ['Moonwarden', 'Owlkeeper', 'Stargazer ✨', "Moonbound"],
+        allowedRoles: ['Moonwarden', 'Owlkeeper', 'Stargazer', "Moonbound"],
     },
     'rr': {
         allowedRoles: ['Moonwarden'],
