@@ -14,6 +14,10 @@ module.exports = {
         owner: 'noctalia-dev',
         repo: 'noctalia-shell',
     },
+    githubApiQs: {
+        owner: 'noctalia-dev',
+        repo: 'noctalia-qs',
+    },
     website: 'https://noctalia.dev',
     
     channels: {

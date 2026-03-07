@@ -7,9 +7,10 @@ const resources = require('../config/resources');
  */
 async function updateBotStatus(client) {
     try {
-        const [release, commit] = await Promise.all([
+        const [release, commit, qsRelease] = await Promise.all([
             getLatestRelease(resources.githubApi.owner, resources.githubApi.repo),
             getLatestCommit(resources.githubApi.owner, resources.githubApi.repo),
+            getLatestRelease(resources.githubApiQs.owner, resources.githubApiQs.repo),
         ]);
         
         let statusText = '';
@@ -22,6 +23,10 @@ async function updateBotStatus(client) {
             statusText = `Commit: ${commit.sha}`;
         } else {
             statusText = 'Noctalia Shell';
+        }
+        
+        if (qsRelease) {
+            statusText += ` | QS ${qsRelease.tag}`;
         }
         
         client.user.setActivity(statusText, {
